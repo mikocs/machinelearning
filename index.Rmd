@@ -5,10 +5,8 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
-
-# Summary
 
 # Objective
 
@@ -23,6 +21,7 @@ test set.
 ```{r load datasets}
 library(readr)
 library(ggplot2)
+library(caret)
 
 url1 <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
 url2 <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
@@ -40,3 +39,88 @@ testing <- read.delim("./pml-testing.csv", na.strings = c("", "NA", "#DIV/0!"),
                       sep = ",", header = T)
 
 ```
+
+## Exploratory Analysis
+
+```{r exploratory analysis}
+dim(training)
+sum(is.na(training)) / (dim(training)[1] * dim(training)[2])
+table( training$new_window, is.na(training$kurtosis_roll_arm))
+table( training$new_window, training$classe)
+clean_training <- training[, colSums(is.na(training)) < nrow(training) * .95]
+
+inTrain <- createDataPartition(clean_training$classe, p = 0.7, list = FALSE)
+train1 <- clean_training[inTrain, ]
+test1 <- clean_training[-inTrain, ]
+
+set.seed(212131)
+```
+
+The dataset contains 19622 observations across 160 variables.
+Approximately 61% of the data collected is NA.
+
+The variables containing NA results is too high, with a distinct difference over
+the new_window variable. 
+There is no signficant correlation between classification and window.
+I therefore remove all variables that contain NA values in at least 95% of the 
+observations
+
+This leaves a cleaned dataset with only 60 variables.
+
+# Analysis
+
+I want to define if it is possible to predict whether the drumbells exercise
+was done correctly or not, and if with errors with what errors.
+Predictors for the classification will be the acceleration data gathered from
+accelerometers on the subject's body.
+
+I am trying three different approaches to create a prediction model to define
+the classification.
+
+```{r decision tree, cache = TRUE}
+fit1 <- train(classe ~ ., method = 'rpart', data = train1)
+pr_fit1 <- predict(fit1)
+```
+
+```{r random forest, cache = TRUE}
+fit2 <- train(classe ~ ., method = 'kernelpls', data = train1)
+pr_fit2 <- predict(fit2)
+```
+
+```{r k means, cache = TRUE}
+fit3 <- train(classe ~ ., method = 'knn', data = train1, 
+              preProcess = c("pca"))
+pr_fit3 <- predict(fit3)
+```
+
+```{r tables}
+confusionMatrix(train1$classe, pr_fit1)$overall["Accuracy"]
+confusionMatrix(train1$classe, pr_fit2)$overall["Accuracy"]
+confusionMatrix(train1$classe, pr_fit3)$overall["Accuracy"]
+```
+
+The different models have a different accuracy level over the training dataset, 
+with the 5 nearest neighbor classification model delivering a 98.6% accuracy.
+
+Use the best model to deliver a prediction over the test data.
+
+```{r prediction}
+print(fit3)
+prediction <- predict(fit3, testing)
+print(prediction)
+plot(fit3, log = "y", lwd = 2, main = "K Nearest Neighbors Accuracy",
+     xlab = "Predictors",
+     ylab = "Accuracy")
+```
+
+## Out of Sample Error
+
+In sample error rate is 5.4% (1 - 0.946)
+
+```{r out of sample error}
+predv <- predict(fit3, test1)
+oose <- 1 - sum(predv == test1$classe) / length(predv)
+print (oose)
+```
+
+Estimated out of sample error is `r round(oose*100, 2)`%.
