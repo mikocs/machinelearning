@@ -1,14 +1,7 @@
----
-title: "Prediction Assignment Writeup"
-author: "Csaba Miko"
-output: 
-  html_document: 
-    keep_md: yes
----
+# Prediction Assignment Writeup
+Csaba Miko  
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
-```
+
 
 # Objective
 
@@ -20,7 +13,8 @@ The analysis is done on the training sets provided, tested against an independen
 test set.
 
 
-```{r load datasets}
+
+```r
 library(readr)
 library(ggplot2)
 library(caret)
@@ -39,16 +33,50 @@ training <- read.delim("./pml-training.csv", na.strings=c("NA", "#DIV/0!"),
                        sep = ",", header = T)
 testing <- read.delim("./pml-testing.csv", na.strings = c("", "NA", "#DIV/0!"),
                       sep = ",", header = T)
-
 ```
 
 ## Exploratory Analysis
 
-```{r exploratory analysis}
+
+```r
 dim(training)
+```
+
+```
+## [1] 19622   160
+```
+
+```r
 sum(is.na(training)) / (dim(training)[1] * dim(training)[2])
+```
+
+```
+## [1] 0.6131835
+```
+
+```r
 table( training$new_window, is.na(training$kurtosis_roll_arm))
+```
+
+```
+##      
+##       FALSE  TRUE
+##   no      0 19216
+##   yes   328    78
+```
+
+```r
 table( training$new_window, training$classe)
+```
+
+```
+##      
+##          A    B    C    D    E
+##   no  5471 3718 3352 3147 3528
+##   yes  109   79   70   69   79
+```
+
+```r
 clean_training <- training[, colSums(is.na(training)) < nrow(training) * .95]
 
 inTrain <- createDataPartition(clean_training$classe, p = 0.7, list = FALSE)
@@ -79,26 +107,51 @@ accelerometers on the subject's body.
 I am trying three different approaches to create a prediction model to define
 the classification.
 
-```{r decision tree, cache = TRUE}
+
+```r
 fit1 <- train(classe ~ ., method = 'rpart', data = train1)
 pr_fit1 <- predict(fit1)
 ```
 
-```{r random forest, cache = TRUE}
+
+```r
 fit2 <- train(classe ~ ., method = 'kernelpls', data = train1)
 pr_fit2 <- predict(fit2)
 ```
 
-```{r k means, cache = TRUE}
+
+```r
 fit3 <- train(classe ~ ., method = 'knn', data = train1, 
               preProcess = c("pca"))
 pr_fit3 <- predict(fit3)
 ```
 
-```{r tables}
+
+```r
 confusionMatrix(train1$classe, pr_fit1)$overall["Accuracy"]
+```
+
+```
+##  Accuracy 
+## 0.6616437
+```
+
+```r
 confusionMatrix(train1$classe, pr_fit2)$overall["Accuracy"]
+```
+
+```
+##  Accuracy 
+## 0.4681517
+```
+
+```r
 confusionMatrix(train1$classe, pr_fit3)$overall["Accuracy"]
+```
+
+```
+##  Accuracy 
+## 0.9863871
 ```
 
 The different models have a different accuracy level over the training dataset, 
@@ -106,23 +159,64 @@ with the 5 nearest neighbor classification model delivering a 98.6% accuracy.
 
 Use the best model to deliver a prediction over the test data.
 
-```{r prediction}
+
+```r
 print(fit3)
+```
+
+```
+## k-Nearest Neighbors 
+## 
+## 13737 samples
+##    59 predictor
+##     5 classes: 'A', 'B', 'C', 'D', 'E' 
+## 
+## Pre-processing: principal component signal extraction (81), centered
+##  (81), scaled (81) 
+## Resampling: Bootstrapped (25 reps) 
+## Summary of sample sizes: 13737, 13737, 13737, 13737, 13737, 13737, ... 
+## Resampling results across tuning parameters:
+## 
+##   k  Accuracy   Kappa    
+##   5  0.9551197  0.9432035
+##   7  0.9478411  0.9339893
+##   9  0.9410027  0.9253296
+## 
+## Accuracy was used to select the optimal model using  the largest value.
+## The final value used for the model was k = 5.
+```
+
+```r
 prediction <- predict(fit3, testing)
 print(prediction)
+```
+
+```
+##  [1] B A A A A E D B A A B B B A E E A B B B
+## Levels: A B C D E
+```
+
+```r
 plot(fit3, log = "y", lwd = 2, main = "K Nearest Neighbors Accuracy",
      xlab = "Predictors",
      ylab = "Accuracy")
 ```
 
+![](index_files/figure-html/prediction-1.png)<!-- -->
+
 ## Out of Sample Error
 
 In sample error rate is 5.4% (1 - 0.946)
 
-```{r out of sample error}
+
+```r
 predv <- predict(fit3, test1)
 oose <- 1 - sum(predv == test1$classe) / length(predv)
 print (oose)
 ```
 
-Estimated out of sample error is `r round(oose*100, 2)`%.
+```
+## [1] 0.028887
+```
+
+Estimated out of sample error is 2.89%.
