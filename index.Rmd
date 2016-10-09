@@ -12,11 +12,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Objective
 
+I want to identify how well the drumbell exercise was executed by a user of
+accelerometers, based on data gathered from several people executing the exercise
+correcly, and incorrectly in different ways.
 
-
-# Data Gathering
-
-The analysis was done on the training sets provided, tested against an independent
+The analysis is done on the training sets provided, tested against an independent
 test set.
 
 
