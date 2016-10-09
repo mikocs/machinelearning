@@ -1,0 +1,42 @@
+---
+title: "Prediction Assignment Writeup"
+author: "Csaba Miko"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Summary
+
+# Objective
+
+
+
+# Data Gathering
+
+The analysis was done on the training sets provided, tested against an independent
+test set.
+
+
+```{r load datasets}
+library(readr)
+library(ggplot2)
+
+url1 <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+url2 <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+if (!file.exists('./pml-training.csv'))  {
+        download.file(url1, './pml-training.csv')
+        }
+if (!file.exists('./pml-testing.csv')) {
+        download.file(url2, './pml-testing.csv')
+        }
+
+training <- read.delim("./pml-training.csv", na.strings=c("NA", "#DIV/0!"),
+                       sep = ",", header = T)
+testing <- read.delim("./pml-testing.csv", na.strings = c("", "NA", "#DIV/0!"),
+                      sep = ",", header = T)
+
+```
